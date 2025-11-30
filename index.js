@@ -1,6 +1,8 @@
 const axios = require('axios');
 const API = require('./utils/request').API;
 const getATMPrice = require('./utils/optionchain').getATMPrice;
+const dotenv = require('dotenv');
+dotenv.config('.env');
 
 const url = 'https://api.upstox.com/v2/option/chain';
 const params = {

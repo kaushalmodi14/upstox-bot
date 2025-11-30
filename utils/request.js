@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+const bearer = process.env.UPSTOX_API_KEY || '';
 
 export const API = {
     baseUrl: 'https://api.upstox.com/v2/',
