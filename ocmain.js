@@ -9,7 +9,7 @@ import { getDateParts } from "./utils/date.js";
 
 const params = {
     instrument_key: "NSE_INDEX|Nifty 50",
-    expiry_date: "2025-12-02"
+    expiry_date: "2025-12-09"
 };
 
 const data = {};
