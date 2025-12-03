@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+console.log(process.env.UPSTOX_API_KEY);   
 const bearer = process.env.UPSTOX_API_KEY || '';
 
 export const API = {

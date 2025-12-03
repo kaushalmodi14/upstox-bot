@@ -1,3 +1,5 @@
+const dotenv = require('dotenv');
+dotenv.config('.env');
 const startFetching = require('./ocmain').startFetching;
 const getDateParts = require('./utils/date').getDateParts;
 
@@ -7,6 +9,7 @@ setInterval(() => {
         console.log('Outside trading hours:', time);
         return;
     }
-    console.log("Fetched");
+    console.log("Fetched for time:", time);
     startFetching();
-}, 3 * 10 * 1000); // 3 minutes interval
+    
+}, 1000); // 3 minutes interval

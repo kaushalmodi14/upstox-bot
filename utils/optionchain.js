@@ -97,7 +97,7 @@ export const getCombinedData = (data) => {
 
     combinedData = {
         'TIME': combinedData.time,
-        spot: atm.underlying_spot_price,
+        spot: atm.spot_price || null,
         india_vix: data.india_vix || null,
         atm_strike: atm.strike_price,
         atm_iv: null,
