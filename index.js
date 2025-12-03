@@ -1,14 +1,17 @@
-const axios = require('axios');
-const API = require('./utils/request').API;
-const getATMPrice = require('./utils/optionchain').getATMPrice;
 const dotenv = require('dotenv');
 dotenv.config('.env');
-
+const fs = require('fs');
+const API = require('./utils/request').API;
+const OChain = require('./utils/optionchain');
+const { writeToExcel, formatAndWriteToExcel } = require('./utils/xsl');
+getDateParts = require('./utils/date').getDateParts;
 const url = 'https://api.upstox.com/v2/option/chain';
 const params = {
     instrument_key: 'NSE_INDEX|Nifty 50',
     expiry_date: '2025-12-02'
 };
+const data = {
+}
 /*
 const headers = {
     'Content-Type': 'application/json',
@@ -24,5 +27,32 @@ axios.get(url, { params, headers })
         console.error('Error:', error);
     });
     */
-   const data = API.get(`option/chain`, params);
-   data.then((response) => console.log(getATMPrice(response.data.data))).catch((e) => console.log(e))
+
+    const saveData = (newData) => {
+        const key = getDateParts().dateString;
+        if (!data[key]) data[key] = [];
+        data[key].push(newData);
+        fs.writeFileSync(`data/${key}_options.json`, JSON.stringify(data[key], null, 2));
+    }
+
+    const updateExcelFile = async (key) => {
+        try {
+        const storedData = fs.readFileSync(`data/${key}_options.json`, 'utf-8');
+        const parsedData = JSON.parse(storedData);
+        await formatAndWriteToExcel(parsedData, `${key}_options.xlsx`);
+        } catch (e) {
+            console.log(e);
+        }
+    }
+
+
+        const fecthOptionChain = API.get(`option/chain`, params);
+           fecthOptionChain.then((response) => {
+    console.log(JSON.stringify(response.data.data));
+    const finalData = OChain.getCombinedData(response.data.data);   // your processed data
+saveData(finalData);
+updateExcelFile(getDateParts().dateString);
+}).catch((e) => console.log(e))
+
+
+   
