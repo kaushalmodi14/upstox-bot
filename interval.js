@@ -3,7 +3,7 @@ dotenv.config('.env');
 const startFetching = require('./ocmain').startFetching;
 const getDateParts = require('./utils/date').getDateParts;
 
-    startFetching();
+   
 
 setInterval(() => {
     const time = getDateParts().time;
