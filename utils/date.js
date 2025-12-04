@@ -1,6 +1,6 @@
-export const getDateParts = (timezone = "Asia/Kolkata") => {
+export const getDateParts = (timezone = "Asia/Kolkata", time) => {
     const now = new Date(
-        new Date().toLocaleString("en-US", { timeZone: timezone })
+       (time ? new Date(time) : new Date()).toLocaleString("en-US", { timeZone: timezone })
     );
 
     return {
