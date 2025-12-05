@@ -1,21 +1,22 @@
 //
 // Option Chain Utility Functions (Refactored)
 //
+import { API } from './request.js';
 
-
-export const getDateParts = (timezone = "Asia/Kolkata") => {
+export const getDateParts = (timezone = "Asia/Kolkata", time) => {
     const now = new Date(
-        new Date().toLocaleString("en-US", { timeZone: timezone })
+       (time ? new Date(time) : new Date()).toLocaleString("en-US", { timeZone: timezone })
     );
 
     return {
         time: now.toTimeString().split(" ")[0],     // HH:MM:SS
         day: now.getDate(),                         // 1–31
         month: now.getMonth() + 1,                  // 1–12
-        year: now.getFullYear(),
+        year: now.getFullYear(),                     // yyyy
         dateString: now.toISOString().split('T')[0] // YYYY-MM-DD
     };
 }
+
 
 /**
  * Finds the ATM strike and its index based on closest strike to spot price.
@@ -68,21 +69,22 @@ export const getFinalData = (data) => {
 export const convertOption = (data) => {
     if (!data) return null;
 
-    const greeks = data.call_options?.option_greeks || {};
 
-    return {
-        time: getDateParts().time,
-        pcr: data.pcr,
-        strike_price: data.strike_price,
-        spot_price: data.underlying_spot_price,
-        call_options: {
-            option_greeks: { ...greeks }
-        },
-        put_options: {
-            option_greeks: { ...greeks }
-        }
-    };
+
+
+    return data;
 };
+
+const fetchHistoriData = async (date = undefined) => {
+    const fromDate = date || new Date;
+    const toDateTime = fromDate.getTime() + (24 * 60 * 60 * 1000 * 2); // +1 day
+    const toDateString = getDateParts("Asia/Kolkata", toDateTime).dateString;
+    const fromDateString = getDateParts("Asia/Kolkata").dateString;
+    console.log(`Fetching data from ${fromDateString} to ${toDateString}`);
+    const response = await API.customGet(`https://api.upstox.com/v3/historical-candle/NSE_EQ%7CINE848E01016/days/1/${toDateString}/${fromDateString}`);
+    console.log(response.data.data)
+    return response.data.data;  
+}
 
 export const getCombinedData = (data) => {
     const finalData = getFinalData(data);
@@ -97,30 +99,32 @@ export const getCombinedData = (data) => {
 
     combinedData = {
         'TIME': combinedData.time,
-        spot: atm.spot_price || null,
+        spot: atm.underlying_spot_price || null,
         india_vix: data.india_vix || null,
         atm_strike: atm.strike_price,
-        atm_iv: null,
+    //    atm_iv: null,
 
         atm_ce_prev_close: null,
-        atm_ce_premium: null,
+        atm_ce_premium: atm.call_options.market_data?.ltp || null,
         atm_ce_iv: atm.call_options.option_greeks.iv,
         atm_ce_delta: atm.call_options.option_greeks.delta,
         atm_ce_gamma: atm.call_options.option_greeks.gamma,
         atm_ce_theta: atm.call_options.option_greeks.theta,
-        atm_ce_oi: null,
-        atm_ce_oi_change: null,
+        atm_ce_oi: atm.call_options.market_data?.prev_oi,
+        atm_ce_oi_change: (atm.call_options.market_data?.oi - atm.call_options.market_data?.prev_oi) || null,
 
         atm_pe_prev_close: null,
-        atm_pe_premium: null,
+        atm_pe_premium: atm.put_options.market_data?.ltp || null,
         atm_pe_iv: atm.put_options.option_greeks.iv,
         atm_pe_delta: atm.put_options.option_greeks.delta,
         atm_pe_gamma: atm.put_options.option_greeks.gamma,
         atm_pe_theta: atm.put_options.option_greeks.theta,
-        atm_pe_oi: null,
-        atm_pe_oi_change: null,
+        atm_pe_oi: atm.put_options.market_data?.prev_oi,
+        atm_pe_oi_change: atm.put_options.market_data?.oi - atm.put_options.market_data?.prev_oi || null,
 
         plus1_strike: plus1.strike_price,
+        plus1_ce_premium: plus1.call_options.market_data?.ltp || null,
+        plus1_pe_premium: plus1.put_options.market_data?.ltp || null,
         plus1_ce_iv: plus1.call_options.option_greeks.iv,
         plus1_pe_iv: plus1.put_options.option_greeks.iv,
         plus1_ce_delta: plus1.call_options.option_greeks.delta,
@@ -129,12 +133,14 @@ export const getCombinedData = (data) => {
         plus1_pe_theta: plus1.put_options.option_greeks.theta,
         plus1_ce_gamma: plus1.call_options.option_greeks.gamma,
         plus1_pe_gamma: plus1.put_options.option_greeks.gamma,
-        plus1_ce_oi: null,
-        plus1_pe_oi: null,
-        plus1_ce_oi_change: null,
-        plus1_pe_oi_change: null,
+        plus1_ce_oi: plus1.call_options.market_data?.prev_oi || null,
+        plus1_pe_oi: plus1.put_options.market_data?.prev_oi || null,
+        plus1_ce_oi_change: plus1.call_options.market_data?.oi - plus1.call_options.market_data?.prev_oi || null,
+        plus1_pe_oi_change: plus1.put_options.market_data?.oi - plus1.put_options.market_data?.prev_oi || null,
 
         minus1_strike: minus1.strike_price,
+        minus1_ce_premium: minus1.call_options.market_data?.ltp || null,
+        minus1_pe_premium: minus1.put_options.market_data?.ltp || null,
         minus1_ce_iv: minus1.call_options.option_greeks.iv,
         minus1_pe_iv: minus1.put_options.option_greeks.iv,
         minus1_ce_delta: minus1.call_options.option_greeks.delta,
@@ -143,12 +149,14 @@ export const getCombinedData = (data) => {
         minus1_pe_theta: minus1.put_options.option_greeks.theta,
         minus1_ce_gamma: minus1.call_options.option_greeks.gamma,
         minus1_pe_gamma: minus1.put_options.option_greeks.gamma,
-        minus1_ce_oi: null,
-        minus1_pe_oi: null,
-        minus1_ce_oi_change: null,
-        minus1_pe_oi_change: null,
+        minus1_ce_oi: minus1.call_options.market_data?.prev_oi || null,
+        minus1_pe_oi: minus1.put_options.market_data?.prev_oi || null,
+        minus1_ce_oi_change: minus1.call_options.market_data?.oi - minus1.call_options.market_data?.prev_oi || null,
+        minus1_pe_oi_change: minus1.put_options.market_data?.oi - minus1.put_options.market_data?.prev_oi || null,
 
         plus2_strike: plus2.strike_price,
+        plus2_ce_premium: plus2.call_options.market_data?.ltp || null,
+        plus2_pe_premium: plus2.put_options.market_data?.ltp || null,
         plus2_ce_iv: plus2.call_options.option_greeks.iv,
         plus2_pe_iv: plus2.put_options.option_greeks.iv,
         plus2_ce_delta: plus2.call_options.option_greeks.delta,
@@ -157,12 +165,14 @@ export const getCombinedData = (data) => {
         plus2_pe_theta: plus2.put_options.option_greeks.theta,
         plus2_ce_gamma: plus2.call_options.option_greeks.gamma,
         plus2_pe_gamma: plus2.put_options.option_greeks.gamma,
-        plus2_ce_oi: null,
-        plus2_pe_oi: null,
-        plus2_ce_oi_change: null,
-        plus2_pe_oi_change: null,
+        plus2_ce_oi: plus2.call_options.market_data?.prev_oi,
+        plus2_pe_oi: plus2.put_options.market_data?.prev_oi,
+        plus2_ce_oi_change: plus1.call_options.market_data?.oi - plus2.call_options.market_data?.prev_oi || null,
+        plus2_pe_oi_change: plus1.put_options.market_data?.oi - plus2.put_options.market_data?.prev_oi || null,
 
         minus2_strike: minus2.strike_price,
+        minus2_ce_premium: minus2.call_options.market_data?.ltp || null,
+        minus2_pe_premium: minus2.put_options.market_data?.ltp || null,
         minus2_ce_iv: minus2.call_options.option_greeks.iv,
         minus2_pe_iv: minus2.put_options.option_greeks.iv,
         minus2_ce_delta: minus2.call_options.option_greeks.delta,
@@ -171,11 +181,13 @@ export const getCombinedData = (data) => {
         minus2_pe_theta: minus2.put_options.option_greeks.theta,
         minus2_ce_gamma: minus2.call_options.option_greeks.gamma,
         minus2_pe_gamma: minus2.put_options.option_greeks.gamma,
-        minus2_ce_oi: null,
-        minus2_pe_oi: null,
-        minus2_ce_oi_change: null,
-        minus2_pe_oi_change: null,
+        minus2_ce_oi: minus2.call_options.market_data?.prev_oi,
+        minus2_pe_oi: minus2.put_options.market_data?.prev_oi,
+        minus2_ce_oi_change: minus2.call_options.market_data?.oi - minus2.call_options.market_data?.prev_oi || null,
+        minus2_pe_oi_change: minus2.put_options.market_data?.oi - minus2.put_options.market_data?.prev_oi || null,
 
     }
     return combinedData;
 }
+
+// fetchHistoriData();

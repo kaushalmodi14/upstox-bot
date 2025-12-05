@@ -16,14 +16,12 @@ const data = {};
 
 const saveData = (newData) => {
     const key = getDateParts().dateString;
-        if (fs.existsSync(`data/${key}_options.json`)) {
-
+    if (fs.existsSync(`data/${key}_options.json`)) {
     const existingData = fs.readFileSync(`data/${key}_options.json`, "utf-8");
     if (existingData) {
         data[key] = JSON.parse(existingData);
         console.log("data exists")
-    }
-      }
+    }}
     if (!data[key]) data[key] = [];
     data[key].push(newData);
 
